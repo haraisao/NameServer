@@ -19,13 +19,13 @@ def create_names_poa(root_poa):
 #
 #
 class NameService(object):
-    def __init__(self):
+    def __init__(self, with_setup=True):
         self.orb = None
         self.root_poa = None
         self.names_poa = None
         self.ins_poa = None
         self.root_context = None
-
+        if with_setup : self.setup()
 
     def setup(self):
         sys.argv.append('-ORBendPoint')
@@ -78,5 +78,4 @@ class NameService(object):
 
 if __name__ == '__main__':
     ns = NameService()
-    ns.setup()
     ns.run()
