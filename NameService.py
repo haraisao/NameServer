@@ -7,53 +7,76 @@ from omniORB import CORBA,PortableServer
 import CosNaming, CosNaming__POA
 from NameService_impl import *
 
-#
-#
-def orb_mainloop(orb):
-    timeout = 0.000001 # 1 usec
-
-    shutdown = orb._obj.run_timeout(timeout)
+def create_names_poa(root_poa):
     try:
-        while not shutdown:
-            if timeout < 1.0:
-                timeout = timeout * 1.1
-
-            shutdown = orb._obj.run_timeout(timeout)
+        names_poa = root_poa.find_POA("", False)
+        return names_poa
     except:
-        pass
-
+        pl = root_poa.create_lifespan_policy(PortableServer.PERSISTENT)
+        names_poa = root_poa.create_POA("", root_poa._get_the_POAManager(), [pl])
+        names_poa._get_the_POAManager().activate()
+        return names_poa
 #
 #
-def main():
-    sys.argv.append('-ORBendPoint')
-    sys.argv.append('giop:tcp::2809')
-    sys.argv.append('-ORBpoaUniquePersistentSystemIds')
-    sys.argv.append('1')
+class NameService(object):
+    def __init__(self):
+        self.orb = None
+        self.root_poa = None
+        self.names_poa = None
+        self.ins_poa = None
+        self.root_context = None
 
-    orb = CORBA.ORB_init(sys.argv)
-    root_poa = orb.resolve_initial_references("RootPOA")
-    pmon = root_poa._get_the_POAManager()
 
+    def setup(self):
+        sys.argv.append('-ORBendPoint')
+        sys.argv.append('giop:tcp::2809')
+        sys.argv.append('-ORBpoaUniquePersistentSystemIds')
+        sys.argv.append('1')
+
+        self.orb = CORBA.ORB_init(sys.argv)
+        self.root_poa = self.orb.resolve_initial_references("RootPOA")
+        #
+        #
+        self.names_poa = create_names_poa(self.root_poa)
+        #
+        #
+        self.ins_poa  = self.orb.resolve_initial_references("omniINSPOA")
+        self.root_context = NamingContext_i("NameService", self.names_poa, self.ins_poa)
+        self.ins_poa._get_the_POAManager().activate()
+        self.print_ior(self.root_context)
+
+    def print_ior(self, obj):
+        print(self.orb.object_to_string(obj._this()))
+    
+    #
+    def shutdown(self):
+        try:
+            self.shutdown_flag = False
+            self.orb.shutdown(True)
+        except:
+            pass
+        sys.exit()
     #
     #
-    pl = root_poa.create_lifespan_policy(PortableServer.PERSISTENT)
-    names_poa = root_poa.create_POA("", pmon, [pl])
-    names_poa._get_the_POAManager().activate()
+    def mainloop(self, tv = 0.000001):
+        self.timeout = tv # 1 usec
+        self.shutdown_flag = True
+        self.shutdown_flag = self.orb._obj.run_timeout(self.timeout)
+        try:
+            while not self.shutdown_flag:
+                if self.timeout < 1.0:
+                    self.timeout = self.timeout * 1.1
+                self.shutdown_flag = self.orb._obj.run_timeout(self.timeout)
+        except:
+            pass
 
-    #
-    #
-    ins_poa  = orb.resolve_initial_references("omniINSPOA")
+    def run(self):
+        #self.orb.run()
+        self.mainloop()
+        self.shutdown()
 
-    root_context = NamingContext_i("NameService", ins_poa, names_poa)
-    #obj = ins_poa.activate_object_with_id("NameService", root_context)
-    ins_poa._get_the_POAManager().activate()
-
-    print(orb.object_to_string(root_context._this()))
-   
-    orb.run()
-
-    orb.shutdown()
-    sys.exit()
 
 if __name__ == '__main__':
-    main()
+    ns = NameService()
+    ns.setup()
+    ns.run()

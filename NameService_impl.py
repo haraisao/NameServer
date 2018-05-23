@@ -22,17 +22,27 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
       exception NotFound{NotFoundReason, Name}, CannotProceed{NamingContext, Name}, InvalidName{}, AlreadyBound{}, NotEmpty{}
   
     '''
-    def __init__(self, name, poa,names_poa):
-        self.poa = poa
+    def __init__(self, id, names_poa, ins_poa=None):
+        if ins_poa:
+            self.poa = ins_poa
+        else:
+            self.poa = names_poa
+
         self.iterators = {}
         self.naming_table = {}
         self.lock = threading.Lock()
         self.iterator_poa = names_poa
-        self.name = name
-        if name:
-            poa.activate_object_with_id(name, self)
 
-        print ("Create NamingContext:"+name)
+        if id is None:
+            ref = self.poa.create_reference(CosNaming.NamingContext._NP_RepositoryId)
+            self.id = self.poa.reference_to_id(ref)
+        else:
+            self.id = id
+        try:
+            self.poa.activate_object_with_id(self.id, self)
+        except:
+            pass
+        print ("Create NamingContext:", self.id)
 
     def bind(self, n, obj):
         print("Call bind")
@@ -48,14 +58,9 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         return
 
     def rebind(self, n, obj):
-        print("Call rebind",n)
         if len(n) == 1:
-            kkey = URI.nameToString(n)
+            key = URI.nameToString(n)
             self.naming_table[key] = obj
-            #if self.naming_table.has_key(n[0]) :
-            #    self.naming_table[n[0]] = obj
-            #else:
-            #    raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
         else:
             print("Error in rebind")
             pass
