@@ -2,6 +2,7 @@
 #
 from __future__ import print_function
 import sys
+import os
 from omniORB import CORBA,PortableServer
 
 import CosNaming, CosNaming__POA
@@ -59,16 +60,19 @@ class NameService(object):
     #
     #
     def mainloop(self, tv = 0.000001):
-        self.timeout = tv # 1 usec
-        self.shutdown_flag = True
-        self.shutdown_flag = self.orb._obj.run_timeout(self.timeout)
-        try:
-            while not self.shutdown_flag:
-                if self.timeout < 1.0:
-                    self.timeout = self.timeout * 1.1
-                self.shutdown_flag = self.orb._obj.run_timeout(self.timeout)
-        except:
-            pass
+        if os.name == 'posix':
+            self.orb.run()
+        else:
+            self.timeout = tv # 1 usec
+            self.shutdown_flag = True
+            self.shutdown_flag = self.orb._obj.run_timeout(self.timeout)
+            try:
+                while not self.shutdown_flag:
+                    if self.timeout < 1.0:
+                        self.timeout = self.timeout * 1.1
+                    self.shutdown_flag = self.orb._obj.run_timeout(self.timeout)
+            except:
+                pass
 
     def run(self):
         #self.orb.run()
