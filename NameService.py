@@ -7,8 +7,8 @@ from omniORB import CORBA,PortableServer
 import CosNaming, CosNaming__POA
 from NameService_impl import *
 
-
-
+#
+#
 def orb_mainloop(orb):
     timeout = 0.000001 # 1 usec
 
@@ -22,6 +22,8 @@ def orb_mainloop(orb):
     except:
         pass
 
+#
+#
 def main():
     sys.argv.append('-ORBendPoint')
     sys.argv.append('giop:tcp::2809')
