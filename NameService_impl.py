@@ -13,23 +13,14 @@ import threading
   Binding -> { Name, BindingType }
   BindingList = [Binding]
 
+ Interface: NamingContext, BindingIterator, NamingContextExt(NamingContext)
 
 '''
+from collections import OrderedDict
 
-class BindingItem(object):
-    def __init__(self, name, typ, obj):
-        self.name = name
-        self.name_str = URI.nameToString(name)
-        self.object = obj
-        self.type = typ
-
-    def compare(self, name):
-        return self.name_str == URI.nameToString(name)
-
-    def get(self):
-        return CosNaming.Binding(self.name, self.type)
-
-
+#
+#  Interface NamingContextExt
+#
 class NamingContext_i(CosNaming__POA.NamingContextExt):
     '''
       NotFoundReason(Emun) -> missing_node, not_context, not_object
@@ -45,10 +36,8 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             self.poa = names_poa
 
         self.iterators = {}
-        self.naming_table = {}
-        self.context_table = {}
         self.binding_list = []
-        self.object_table = {}
+        self.object_table = OrderedDict()
         self.lock = threading.Lock()
         self.names_poa = names_poa
 
@@ -66,10 +55,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
     ##################################################
     #
     def get_next_context(self, n, force=False):
-        print("Call get_next_content", n)
         key = URI.nameToString([n[0]])
-        if self.object_table.has_key(key) :
-            raise CosNaming.NamingContext.InvalidName()
 
         if self.object_table.has_key(key) :
             if self.object_table[key][1] == CosNaming.ncontext :
@@ -80,7 +66,6 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         else:
            if force :
                nc = NamingContext_i(None, self.names_poa)
-               self.binding_list.append(BindingItem([n[0]], CosNaming.ncontext, nc))
                self.object_table[key] = (nc, CosNaming.ncontext)
                return nc
            else:
@@ -89,9 +74,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
     #
     #
     def bind_one(self, n, obj, force=False):
-        print("Call bind_one", n)
         if len(n) == 1:
-            self.binding_list.append(BindingItem(n, CosNaming.nobject, obj))
             key = URI.nameToString(n)
             if not force and self.object_table.has_key(key):
                 raise CosNaming.NamingContext.AlreadyBound()
@@ -104,8 +87,9 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
 
     ##################################################
     #
+    # void bind (in Name n, in Object obj)
+    #   raises (NotFound, CannotProceed, InvalidName, AlreadyBound);
     def bind(self, n, obj):
-        print("Call bind")
         if len(n) == 1:
             self.bind_one(n, obj, True)
             return
@@ -114,6 +98,8 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             cxt.bind(n[1:], obj)
         return
     #
+    # void rebind (in Name n, in Object obj)
+    #   raises (NotFound, CannotProceed, InvalidName);
     def rebind(self, n, obj):
         if len(n) == 1:
             self.bind_one(n, obj, True)
@@ -121,20 +107,22 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         else:
             cxt = self.get_next_context(n, True)
             cxt.bind(n[1:], obj)
-        return 
-
-    #
+        return
+    # 
+    # void bind_context (in Name n, in NamingContext nc)
+    #    raises (NotFound, CannotProceed,  InvalidName, AlreadyBound);
+    # (Not tested)
     def bind_context(self, n, nc):
-        print("Call bind_context")
-        
         key = URI.nameToString(n)
         if not force and self.object_table.has_key(key) :
             raise CosNaming.NamingContext.AlreadyBound()
 
-        self.context_table[key] = (nc, CosNaming.ncontext)
+        self.object_table[key] = (nc, CosNaming.ncontext)
         return
-
     #
+    # void rebind_context (in Name n, in NamingContext nc)
+    #    raises (NotFound, CannotProceed, InvalidName);
+    # (Not tested) 
     def rebind_context(self, n, nc):
         key = URI.nameToString(n)
         if self.object_table.has_key(key) :
@@ -148,15 +136,16 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
         return
     #
+    # Object resolve (in Name n)
+    #    raises (NotFound, CannotProceed, InvalidName);
     def resolve(self, n):
-        print("Call resolve", n)
         if len(n) == 1:
             key = URI.nameToString(n)
             if self.object_table.has_key(key) :
                 if self.object_table[key][1] == CosNaming.nobject:
                     return self.object_table[key][0]
                 elif self.object_table[key][1] == CosNaming.ncontext:
-                    return object_table[key][0]._this()
+                    return self.object_table[key][0]._this()
                 else:
                     raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
             else:
@@ -165,8 +154,9 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             pass
         return 
     #
+    # void unbind (in Name n)
+    #    raises (NotFound, CannotProceed, InvalidName);
     def unbind(self, n):
-        print("Call unbind", n)
         if len(n) == 1:
             key = URI.nameToString(n)
             if self.object_table.has_key(key) :
@@ -179,15 +169,24 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             cxt.unbind(n[1:])
             pass
         return 
-
+    #
+    # NamingContext new_context ();
+    # (Not tested)
     def new_context(self):
         nc = NamingContext_i(None, self.names_poa)
         ncref = nc._this()
         return ncref
-
+    #
+    # NamingContext bind_new_context (in Name n)
+    #   raises (NotFound, CannotProceed, InvalidName, AlreadyBound);
+    # (Not tested)
     def bind_new_context(self, n):
-        return None
-
+        nc = NamingContext_i(None, self.names_poa)
+        ncref = nc._this()
+        self.bind_context(n, nc)
+        return ncref
+    #
+    # void destroy () raises (NotEmpty);
     def destroy(self):
         if len(self.naming_table) == 0 :
             for x in self.iterators:
@@ -197,18 +196,19 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         else:
             raise CosNaming.NamingContext.NotEmpty()
         return 
-
+    #
+    # void list (in unsigned long how_many,
+	#       out BindingList bl, out BindingIterator bi);
     def list(self, how_many):
-        print("Call list")
         rest = None
         bl = []
         for i,x in enumerate(self.object_table):
-            if i < how_meny:
+            if i < how_many:
                 name = URI.stringToName(x)
                 val = CosNaming.Binding(name, self.object_table[x][1])
                 bl.append(val)
             else:
-                break
+                rest = self.object_table.keys()[how_many:]
     
         if rest:
             bii = BindingIterator_i(self, self.names_poa, rest)
@@ -219,47 +219,82 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             self.lock.release()
         else:
             bi = None
-        print(bl, bi)
         return (bl, bi)
-
+    #
+    #  StringName  to_string(in Name n)      raises(InvalidName);
     def to_string(self, n):
         return URI.nameToString(n)
-
+    #
+    # Name        to_name(in StringName sn) raises(InvalidName);
     def to_name(self, sn):
         return URI.stringToName(sn)
-
+    #
+    # URLString   to_url(in Address addr, in StringName sn)
+    #   raises(InvalidAddress, InvalidName);
     def to_url(self, addr, sn):
         return URI.addrAndNameToURI(addr, sn)
-
+    #
+    # Object      resolve_str(in StringName n)
+    #  raises(NotFound, CannotProceed, InvalidName, AlreadyBound);
     def resolve_str(self, sn):
         return self.resolve(URI.stringToName(sn))
-
+    
+    ###############################################################
+    # for BindingIterator
     def _removeIterator(self, id):
         self.lock.acquire()
         del self.iterators[id]
         self.lock.release()
         return
-#
+###################################################################
+# Interface: BindingIterator
 #
 class BindingIterator_i(CosNaming__POA.BindingIterator):
-    def __init__(self, nc, poa, bindings):
+    def __init__(self, nc, poa, keys):
         self.name_context = nc
         self.poa = poa
-        self.bindings = bindings
+        self.keys = keys
+        self.object_table = nc.object_table
         print("BindingIterator created")
 
     def __del__(self):
         print("BindingIterator deleted")
 
-    def nect_one(self):
-        return
+    # boolean next_one (out Binding b);
+    def next_one(self):
+        b = None
+        res = True
+        try:
+          x = self.keys.pop(0)
+          name = URI.stringToName(x)
+          b = CosNaming.Binding(name, self.object_table[x][1])
+        except:
+          res = False
+          self.destroy()
+        return (res, b)
 
+    # boolean next_n   (in unsigned long how_many, out BindingList bl);
     def next_n(self, how_many):
-        return
+        res = True
+        bl = []
+        try:
+          n_keys = len(self.keys)
+          for i in range(n_keys):
+            if i < how_many:
+                x = self.keys.pop(0)
+                name = URI.stringToName(x)
+                val = CosNaming.Binding(name, self.object_table[x][1])
+                bl.append(val)
+        except:
+          res = False
+          self.destroy()
+        return (res, bl)
 
+    # void    destroy  ();
     def destroy(self):
-        id = self.pos.servant_to_id(self)
+        id = self.poa.servant_to_id(self)
         self.name_context._removeIterator(id)
         self.poa.deactivate_object(id)
+        return
 
 
