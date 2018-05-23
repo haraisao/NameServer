@@ -79,7 +79,9 @@ class NameService(object):
         self.mainloop()
         self.shutdown()
 
-
-if __name__ == '__main__':
+def main():
     ns = NameService()
     ns.run()
+
+if __name__ == '__main__':
+    main()
