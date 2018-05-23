@@ -48,6 +48,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         self.naming_table = {}
         self.context_table = {}
         self.binding_list = []
+        self.object_table = {}
         self.lock = threading.Lock()
         self.names_poa = names_poa
 
@@ -67,23 +68,23 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
     def get_next_context(self, n, force=False):
         print("Call get_next_content", n)
         key = URI.nameToString([n[0]])
-        if self.naming_table.has_key(key) :
-           raise CosNaming.NamingContext.InvalidName()
-           return None
+        if self.object_table.has_key(key) :
+            raise CosNaming.NamingContext.InvalidName()
 
-        if self.context_table.has_key(key) :
-           return self.context_table[key]
+        if self.object_table.has_key(key) :
+            if self.object_table[key][1] == CosNaming.ncontext :
+                return self.object_table[key][0]
+            else:
+                raise CosNamingContext.InvalidName()
 
         else:
            if force :
                nc = NamingContext_i(None, self.names_poa)
                self.binding_list.append(BindingItem([n[0]], CosNaming.ncontext, nc))
-               self.context_table[key] = nc
+               self.object_table[key] = (nc, CosNaming.ncontext)
                return nc
            else:
-               raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
-               return None
-            
+               raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)            
 
     #
     #
@@ -92,10 +93,10 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         if len(n) == 1:
             self.binding_list.append(BindingItem(n, CosNaming.nobject, obj))
             key = URI.nameToString(n)
-            if not force and self.naming_table.has_key(key):
+            if not force and self.object_table.has_key(key):
                 raise CosNaming.NamingContext.AlreadyBound()
-                return
-            self.naming_table[key] = obj
+
+            self.object_table[key] = (obj, CosNaming.nobject)
             return
         else:
             raise CosNaming.NamingContext.InvalidName()
@@ -125,25 +126,24 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
     #
     def bind_context(self, n, nc):
         print("Call bind_context")
-
         
         key = URI.nameToString(n)
-        if not force and self.context_table.has_key(key) :
+        if not force and self.object_table.has_key(key) :
             raise CosNaming.NamingContext.AlreadyBound()
-            return
-        self.context_table[key] = nc
+
+        self.context_table[key] = (nc, CosNaming.ncontext)
         return
 
     #
     def rebind_context(self, n, nc):
         key = URI.nameToString(n)
-        if self.naming_table.has_key(key) :
+        if self.object_table.has_key(key) :
             try:
-                self.naming_table[key].destroy()
+                self.object_table[key][1].destroy()
             except e:
                 raise e
-                return
-            self.naming_table[key] = obj
+
+            self.object_table[key] = (obj, CosNaming.nobject)
         else:
             raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
         return
@@ -152,12 +152,13 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         print("Call resolve", n)
         if len(n) == 1:
             key = URI.nameToString(n)
-            if self.naming_table.has_key(key) :
-                print("Object")
-                return self.naming_table[key]
-            elif self.context_table.has_key(key) :
-                print ("Context")
-                return self.context_table[key]._this()
+            if self.object_table.has_key(key) :
+                if self.object_table[key][1] == CosNaming.nobject:
+                    return self.object_table[key][0]
+                elif self.object_table[key][1] == CosNaming.ncontext:
+                    return object_table[key][0]._this()
+                else:
+                    raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
             else:
                 raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
         else:
@@ -168,12 +169,14 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         print("Call unbind", n)
         if len(n) == 1:
             key = URI.nameToString(n)
-            if self.naming_table.has_key(key) :
-                del self.naming_table[key]
+            if self.object_table.has_key(key) :
+                del self.object_table[key]
             else:
                 pass
                 #raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
         else:
+            cxt = self.get_next_context(n)
+            cxt.unbind(n[1:])
             pass
         return 
 
@@ -199,14 +202,14 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         print("Call list")
         rest = None
         bl = []
-        for x in self.naming_table:
-            name = URI.stringToName(x)
-            val = CosNaming.Binding(name, CosNaming.nobject)
-            bl.append(val)
-        for x in self.context_table:
-            name = URI.stringToName(x)
-            val = CosNaming.Binding(name, CosNaming.ncontext)
-            bl.append(val)
+        for i,x in enumerate(self.object_table):
+            if i < how_meny:
+                name = URI.stringToName(x)
+                val = CosNaming.Binding(name, self.object_table[x][1])
+                bl.append(val)
+            else:
+                break
+    
         if rest:
             bii = BindingIterator_i(self, self.names_poa, rest)
             id = self.names_poa.activate_object(bii)
