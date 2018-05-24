@@ -114,8 +114,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
     # 
     # void bind_context (in Name n, in NamingContext nc)
     #    raises (NotFound, CannotProceed,  InvalidName, AlreadyBound);
-    # (Not tested)
-    def bind_context(self, n, nc):
+    def bind_context(self, n, nc, force=False):
         key = URI.nameToString(n)
         if not force and self.object_table.has_key(key) :
             raise CosNaming.NamingContext.AlreadyBound()
@@ -134,7 +133,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             except e:
                 raise e
 
-            self.object_table[key] = (obj, CosNaming.nobject)
+            self.object_table[key] = (obj, CosNaming.ncontext)
         else:
             raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
         return
