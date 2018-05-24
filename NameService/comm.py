@@ -1765,6 +1765,6 @@ def findall(func, lst):
 def create_httpd(num=80, top="html", command=WebSocketCommand, host="", ssl=False):
   if type(num) == str: num = int(num)
   reader = HttpReader(None, top)
-  reader.WSCommand = command(reader,None)
+  reader.WSCommand = command(reader, None)
   return SocketServer(reader, "Web", host, num, ssl)
 #  return SocketServer(reader, "Web", socket.gethostname(), num)

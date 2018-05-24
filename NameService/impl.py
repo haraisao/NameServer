@@ -263,6 +263,7 @@ class BindingIterator_i(CosNaming__POA.BindingIterator):
 
     def __del__(self):
         #print("BindingIterator deleted")
+        pass
 
     # boolean next_one (out Binding b);
     def next_one(self):

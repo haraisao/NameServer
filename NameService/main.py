@@ -11,6 +11,11 @@ from omniORB import CORBA,PortableServer
 import CosNaming, CosNaming__POA
 from impl import *
 
+try:
+    import SimpleXMLRPCServer as xmlrpc_server
+except:
+    import xmlrpc.server as xmlrpc_server
+
 def create_names_poa(root_poa):
     try:
         names_poa = root_poa.find_POA("", False)
@@ -23,17 +28,20 @@ def create_names_poa(root_poa):
 #
 #
 class NameService(object):
-    def __init__(self, with_setup=True):
+    def __init__(self, port=2809, with_setup=True):
         self.orb = None
         self.root_poa = None
         self.names_poa = None
         self.ins_poa = None
         self.root_context = None
+        self.port = port
         if with_setup : self.setup()
 
     def setup(self):
-        sys.argv.append('-ORBendPoint')
-        sys.argv.append('giop:tcp::2809')
+        if not ('-ORBendPoint' in sys.argv) :
+            sys.argv.append('-ORBendPoint')
+            sys.argv.append('giop:tcp::'+str(self.port))
+        
         sys.argv.append('-ORBpoaUniquePersistentSystemIds')
         sys.argv.append('1')
 
