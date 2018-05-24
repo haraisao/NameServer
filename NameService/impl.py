@@ -53,7 +53,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             self.poa.activate_object_with_id(self.id, self)
         except:
             pass
-        print ("Create NamingContext:", self.id)
+        #print ("Create NamingContext:", self.id)
 
     ##################################################
     #
@@ -259,10 +259,10 @@ class BindingIterator_i(CosNaming__POA.BindingIterator):
         self.poa = poa
         self.keys = keys
         self.object_table = nc.object_table
-        print("BindingIterator created")
+        #print("BindingIterator created")
 
     def __del__(self):
-        print("BindingIterator deleted")
+        #print("BindingIterator deleted")
 
     # boolean next_one (out Binding b);
     def next_one(self):
