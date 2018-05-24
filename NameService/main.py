@@ -9,7 +9,7 @@ import os
 from omniORB import CORBA,PortableServer
 
 import CosNaming, CosNaming__POA
-from NameService_impl import *
+from impl import *
 
 def create_names_poa(root_poa):
     try:

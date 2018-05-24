@@ -249,6 +249,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         del self.iterators[id]
         self.lock.release()
         return
+        
 ###################################################################
 # Interface: BindingIterator
 #
