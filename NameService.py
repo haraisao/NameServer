@@ -1,5 +1,8 @@
 #
 #
+# Copyright (C) 2018 Isao Hara, All Right Reserved.
+# Released under the MIT license
+#
 from __future__ import print_function
 import sys
 import os
