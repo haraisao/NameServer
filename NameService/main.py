@@ -56,10 +56,11 @@ class NameService(object):
         self.root_context = NamingContext_i("NameService", self.names_poa, self.ins_poa)
         self.ins_poa._get_the_POAManager().activate()
         self.print_ior(self.root_context)
-
+    #
+    #
     def print_ior(self, obj):
         print(self.orb.object_to_string(obj._this()))
-    
+    #
     #
     def shutdown(self):
         try:
