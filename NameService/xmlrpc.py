@@ -25,15 +25,20 @@ server = None
 name_server = None
 shutdown_flag = False
 
+
 def sig_int_handle(signum, frame):
     _stop()
 
+##############################
+#  Xmlrpc
+#
 def _stop():
     global shutdown_flag
     print("Call shutdown")
     shutdown_flag=True
     return 'OK'
-
+#
+#
 def _start():
     global server, shutdown_flag
     if server is None:
@@ -46,7 +51,8 @@ def _start():
         except:
             time.sleep(0.01)
             pass
-
+#
+#
 def getFunctions():
     global_var = globals()
     res = []
@@ -54,14 +60,13 @@ def getFunctions():
        if type(global_var[x]) == types.FunctionType:
            res.append(x)
     return res
-
+#
+#
 def getGlobals():
     global_var = globals()
     return global_var.keys()
-
-def add(x, y):
-    return numpy.float32(x+y)
-
+#
+#
 def registerFunction(name):
     global server
     global_var = globals()
@@ -74,7 +79,8 @@ def registerFunction(name):
     except:
             return "Fail to register_function: "+name
     return False
-
+#
+#
 def remoteExec(src):
     try:
       print (src)
@@ -85,6 +91,8 @@ def remoteExec(src):
       return False
     return True
 
+#
+#
 def remoteEval(src):
     try:
       print (src)
@@ -94,17 +102,70 @@ def remoteEval(src):
       return False
     return True
 
-def resolve(str):
+##############################
+#  Name Service
+#
+def resolve_rtc(path):
     global name_server
     try:
       if name_server:
-        obj = name_server.root_context.resolve_str(str)
-        print(obj)
-      if obj is None: return False 
-      return  True
+        obj = name_server.root_context.resolve_str(path)
+      return  obj
     except:
-      return False 
-
+      pass
+    return None 
+#
+#
+def get_rtc_ec(path):
+    try:
+      rtc = resolve_rtc(path)
+      if rtc :
+        return rtc, rtc.get_owned_contexts()
+    except:
+      pass
+    return None
+#
+#
+def activate_rtc(path):
+    try:
+      rtc, ecs = get_ec(path)
+      if ecs[0] :
+        return ecs[0].activate_component(rtc)
+    except:
+      pass
+    return False
+#
+# 
+def deactivate_rtc(path):
+    try:
+      rtc, ecs = get_ec(path)
+      if ecs[0] :
+        return ecs[0].deactivate_component(rtc)
+    except:
+      pass
+    return False
+#
+# 
+def reset_rtc(path):
+    try:
+      rtc, ecs = get_ec(path)
+      if ecs[0] :
+        return ecs[0].reset_component(rtc)
+    except:
+      pass
+    return False
+#
+# 
+def exit_rtc(path):
+    try:
+      rtc = resolve_rtc(path)
+      if rtc :
+        return rtc.exit()
+    except:
+      pass
+    return False
+#
+# 
 def list(val=''):
     if type(val) == type("") :
         return list_one(val)
@@ -114,7 +175,8 @@ def list(val=''):
           res.append( list(x) )
         return res
     return ""
-
+#
+#
 def list_one(val=''):
     global name_server
     try:
@@ -136,22 +198,63 @@ def list_one(val=''):
 
     except:
       return ""
+#
+#
+def get_rtc_ports(path):
+  res = []
+  try:
+    rtc = resolve_rtc(path)
+    ports = rtc.get_ports()
+    for p in ports:
+      prof = p.get_port_profile()
+      res.append(prof.name) 
+  except:
+    pass
+  return res
+#
+#
+def check_connection(outp, inp):
+  opp = outp.get_port_profile()
+  for prof in op.connector_profiles:
+    ports = prof.ports
+    if len(pors) == 2 :
+       if outp._is_equivalent(ports[0]) and inp._is_equivalent(ports[0]):
+           return prof.connector_id
+       elif inp._is_equivalent(ports[0]) and outp._is_equivalent(ports[0]):
+           return prof.connector_id
+  return None
+
+def disconnect_ports(outp, inp):
+    cid = check_connection(outp, inp)
+    if cid :
+      outp.disconnect(cid)
+      return True
+    return False
+
+def get_rtc_port(path, pname):
+  try:
+    rtc = resolve_rtc(path)
+    ports = rtc.get_ports()
+    for p in ports:
+      prof = p.get_port_profile()
+      if prof.name.split('.')[-1] == pname:
+          return p
+  except:
+    pass
+  return None
+ 
     
 
-
+##############################################
+#    
 def _setup(funcs=[], port=8080, global_var=globals()):
     global server
 
     signal.signal(signal.SIGINT, sig_int_handle)
     server = xmlrpc_server.SimpleXMLRPCServer(('localhost', port))
-    server.register_function(_stop)
-    server.register_function(initNS)
-    server.register_function(getFunctions)
-    server.register_function(getGlobals)
-    server.register_function(registerFunction)
-    server.register_function(remoteExec)
-    server.register_function(resolve)
-    server.register_function(list)
+    funcs = [ _stop, initNS, getFunctions, getGlobals, registerFunction,remoteExec,list,activate_rtc, deactivate_rtc,reset_rtc,exit_rtc]
+    for x in funcs:
+        server.register_function(x)
 
     for x in funcs :
         if type(x) == str and global_var.has_key(x) :
@@ -163,7 +266,8 @@ def _setup(funcs=[], port=8080, global_var=globals()):
             server.register_function(x)
     server.register_introspection_functions()
     return server
-
+#
+#
 def initNS():
     global name_server
     if name_server is None:
