@@ -207,7 +207,7 @@ def get_rtc_ports(path):
     ports = rtc.get_ports()
     for p in ports:
       prof = p.get_port_profile()
-      res.append(prof.name) 
+      res.append(prof.name.split('.')[-1]) 
   except:
     pass
   return res
@@ -215,8 +215,9 @@ def get_rtc_ports(path):
 #
 def check_connection(outp, inp):
   opp = outp.get_port_profile()
-  for prof in op.connector_profiles:
+  for prof in opp.connector_profiles:
     ports = prof.ports
+    print(ports)
     if len(pors) == 2 :
        if outp._is_equivalent(ports[0]) and inp._is_equivalent(ports[0]):
            return prof.connector_id
@@ -238,11 +239,37 @@ def get_rtc_port(path, pname):
     for p in ports:
       prof = p.get_port_profile()
       if prof.name.split('.')[-1] == pname:
+          print(p)
           return p
   except:
     pass
   return None
  
+def get_connection_id(path1, path2):
+  try:
+    rtc1, pname1 = path1.split(':')
+    rtc2, pname2 = path2.split(':')
+    p1 = get_rtc_port(rtc1, pname1)
+    p2 = get_rtc_port(rtc2, pname2)
+    res = check_connection(p1, p2)
+    print(res)
+    return res
+  except:
+    pass
+  return None
+    
+def disconnect(path1, path2):
+  try:
+    rtc1, pname1 = path1.split(':')
+    rtc2, pname2 = path2.split(':')
+    p1 = get_rtc_port(rtc1, pname1)
+    p2 = get_rtc_port(rtc2, pname2)
+    res = disconnect_ports(p1, p2)
+    print(res)
+    return res
+  except:
+    pass
+  return None
     
 
 ##############################################
@@ -252,7 +279,10 @@ def _setup(funcs=[], port=8080, global_var=globals()):
 
     signal.signal(signal.SIGINT, sig_int_handle)
     server = xmlrpc_server.SimpleXMLRPCServer(('localhost', port))
-    funcs = [ _stop, initNS, getFunctions, getGlobals, registerFunction,remoteExec,list,activate_rtc, deactivate_rtc,reset_rtc,exit_rtc]
+    funcs = [ _stop, initNS, getFunctions, getGlobals,
+              registerFunction,remoteExec,list,activate_rtc,
+              deactivate_rtc,reset_rtc,exit_rtc,get_rtc_ports,
+              get_connection_id, disconnect]
     for x in funcs:
         server.register_function(x)
 
