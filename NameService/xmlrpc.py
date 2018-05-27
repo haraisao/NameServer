@@ -9,8 +9,6 @@ import types
 import signal
 import time
 
-import numpy
-
 import traceback
 
 import OpenRTM_aist, RTC, OpenRTM, SDOPackage, RTM
@@ -21,14 +19,19 @@ try:
 except:
     import xmlrpc.server as xmlrpc_server
 
+
 server = None
 name_server = None
 shutdown_flag = False
 
+def NameServer():
+    global name_server
+    return name_server
 
 def sig_int_handle(signum, frame):
     _stop()
 
+from rtm import *
 ##############################
 #  Xmlrpc
 #
@@ -102,175 +105,6 @@ def remoteEval(src):
       return False
     return True
 
-##############################
-#  Name Service
-#
-def resolve_rtc(path):
-    global name_server
-    try:
-      if name_server:
-        obj = name_server.root_context.resolve_str(path)
-      return  obj
-    except:
-      pass
-    return None 
-#
-#
-def get_rtc_ec(path):
-    try:
-      rtc = resolve_rtc(path)
-      if rtc :
-        return rtc, rtc.get_owned_contexts()
-    except:
-      pass
-    return None
-#
-#
-def activate_rtc(path):
-    try:
-      rtc, ecs = get_ec(path)
-      if ecs[0] :
-        return ecs[0].activate_component(rtc)
-    except:
-      pass
-    return False
-#
-# 
-def deactivate_rtc(path):
-    try:
-      rtc, ecs = get_ec(path)
-      if ecs[0] :
-        return ecs[0].deactivate_component(rtc)
-    except:
-      pass
-    return False
-#
-# 
-def reset_rtc(path):
-    try:
-      rtc, ecs = get_ec(path)
-      if ecs[0] :
-        return ecs[0].reset_component(rtc)
-    except:
-      pass
-    return False
-#
-# 
-def exit_rtc(path):
-    try:
-      rtc = resolve_rtc(path)
-      if rtc :
-        return rtc.exit()
-    except:
-      pass
-    return False
-#
-# 
-def list(val=''):
-    if type(val) == type("") :
-        return list_one(val)
-    if type(val) == type([]) :
-        res = []
-        for x in val:
-          res.append( list(x) )
-        return res
-    return ""
-#
-#
-def list_one(val=''):
-    global name_server
-    try:
-      root_context = name_server.root_context
-      cxt = root_context
-      cxt_str = val.split('/')
-      for x in cxt_str:
-          if x :
-              if type(cxt.object_table[x][0]) == type(root_context) :
-                  cxt = cxt.object_table[ x ][0]
-              else:
-                  return ""
-      ll = cxt.object_table
-      res = []
-      for x in ll:
-        if ll[x][1] == CosNaming.ncontext : res.append(val+x+"/")
-        else: res.append(val+x)
-      return res
-
-    except:
-      return ""
-#
-#
-def get_rtc_ports(path):
-  res = []
-  try:
-    rtc = resolve_rtc(path)
-    ports = rtc.get_ports()
-    for p in ports:
-      prof = p.get_port_profile()
-      res.append(prof.name.split('.')[-1]) 
-  except:
-    pass
-  return res
-#
-#
-def check_connection(outp, inp):
-  opp = outp.get_port_profile()
-  for prof in opp.connector_profiles:
-    ports = prof.ports
-    print(ports)
-    if len(pors) == 2 :
-       if outp._is_equivalent(ports[0]) and inp._is_equivalent(ports[0]):
-           return prof.connector_id
-       elif inp._is_equivalent(ports[0]) and outp._is_equivalent(ports[0]):
-           return prof.connector_id
-  return None
-
-def disconnect_ports(outp, inp):
-    cid = check_connection(outp, inp)
-    if cid :
-      outp.disconnect(cid)
-      return True
-    return False
-
-def get_rtc_port(path, pname):
-  try:
-    rtc = resolve_rtc(path)
-    ports = rtc.get_ports()
-    for p in ports:
-      prof = p.get_port_profile()
-      if prof.name.split('.')[-1] == pname:
-          print(p)
-          return p
-  except:
-    pass
-  return None
- 
-def get_connection_id(path1, path2):
-  try:
-    rtc1, pname1 = path1.split(':')
-    rtc2, pname2 = path2.split(':')
-    p1 = get_rtc_port(rtc1, pname1)
-    p2 = get_rtc_port(rtc2, pname2)
-    res = check_connection(p1, p2)
-    print(res)
-    return res
-  except:
-    pass
-  return None
-    
-def disconnect(path1, path2):
-  try:
-    rtc1, pname1 = path1.split(':')
-    rtc2, pname2 = path2.split(':')
-    p1 = get_rtc_port(rtc1, pname1)
-    p2 = get_rtc_port(rtc2, pname2)
-    res = disconnect_ports(p1, p2)
-    print(res)
-    return res
-  except:
-    pass
-  return None
-    
 
 ##############################################
 #    
@@ -282,7 +116,7 @@ def _setup(funcs=[], port=8080, global_var=globals()):
     funcs = [ _stop, initNS, getFunctions, getGlobals,
               registerFunction,remoteExec,list,activate_rtc,
               deactivate_rtc,reset_rtc,exit_rtc,get_rtc_ports,
-              get_connection_id, disconnect]
+              get_connection_id, connect, disconnect]
     for x in funcs:
         server.register_function(x)
 
