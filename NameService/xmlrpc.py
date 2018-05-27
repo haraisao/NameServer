@@ -9,6 +9,13 @@ import types
 import signal
 import time
 
+import numpy
+
+import traceback
+
+import OpenRTM_aist, RTC, OpenRTM, SDOPackage, RTM
+import CosNaming
+
 try:
     import SimpleXMLRPCServer as xmlrpc_server
 except:
@@ -53,7 +60,7 @@ def getGlobals():
     return global_var.keys()
 
 def add(x, y):
-    return x+y
+    return numpy.float32(x+y)
 
 def registerFunction(name):
     global server
@@ -83,10 +90,53 @@ def remoteEval(src):
       print (src)
       print(eval(src,globals()))
     except:
-      import traceback
       traceback.print_exc()
       return False
     return True
+
+def resolve(str):
+    global name_server
+    try:
+      if name_server:
+        obj = name_server.root_context.resolve_str(str)
+        print(obj)
+      if obj is None: return False 
+      return  True
+    except:
+      return False 
+
+def list(val=''):
+    if type(val) == type("") :
+        return list_one(val)
+    if type(val) == type([]) :
+        res = []
+        for x in val:
+          res.append( list(x) )
+        return res
+    return ""
+
+def list_one(val=''):
+    global name_server
+    try:
+      root_context = name_server.root_context
+      cxt = root_context
+      cxt_str = val.split('/')
+      for x in cxt_str:
+          if x :
+              if type(cxt.object_table[x][0]) == type(root_context) :
+                  cxt = cxt.object_table[ x ][0]
+              else:
+                  return ""
+      ll = cxt.object_table
+      res = []
+      for x in ll:
+        if ll[x][1] == CosNaming.ncontext : res.append(val+x+"/")
+        else: res.append(val+x)
+      return res
+
+    except:
+      return ""
+    
 
 
 def _setup(funcs=[], port=8080, global_var=globals()):
@@ -100,6 +150,8 @@ def _setup(funcs=[], port=8080, global_var=globals()):
     server.register_function(getGlobals)
     server.register_function(registerFunction)
     server.register_function(remoteExec)
+    server.register_function(resolve)
+    server.register_function(list)
 
     for x in funcs :
         if type(x) == str and global_var.has_key(x) :

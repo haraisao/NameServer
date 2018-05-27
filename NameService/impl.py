@@ -82,6 +82,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             if not force and self.object_table.has_key(key):
                 raise CosNaming.NamingContext.AlreadyBound()
 
+            print(obj)
             self.object_table[key] = (obj, CosNaming.nobject)
             return
         else:
@@ -153,8 +154,9 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             else:
                 raise CosNaming.NamingContext.NotFound(CosNaming.NamingContext.missing_node, n)
         else:
-            pass
-        return 
+            cxt = self.get_next_context(n)
+            return cxt.resolve(n[1:])
+        return None
     #
     # void unbind (in Name n)
     #    raises (NotFound, CannotProceed, InvalidName);
@@ -239,7 +241,9 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
     # Object      resolve_str(in StringName n)
     #  raises(NotFound, CannotProceed, InvalidName, AlreadyBound);
     def resolve_str(self, sn):
+        print (URI.stringToName(sn))
         return self.resolve(URI.stringToName(sn))
+
     
     ###############################################################
     # for BindingIterator
@@ -249,6 +253,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
         self.lock.release()
         return
         
+
 ###################################################################
 # Interface: BindingIterator
 #
