@@ -108,7 +108,7 @@ def remoteEval(src):
 
 ##############################################
 #    
-def _setup(funcs=[], port=8080, global_var=globals()):
+def _setup(funcs=[], port=10080, global_var=globals()):
     global server
 
     signal.signal(signal.SIGINT, sig_int_handle)

@@ -91,9 +91,39 @@ class NameService(object):
         self.mainloop()
         self.shutdown()
 
+#
+#
+def daemonize(pidfname="NameService.pid"):
+  try:
+    pid=os.fork()
+  except:
+    print( "ERROR in fork1" )
+
+  if pid > 0:
+    os._exit(0)
+
+  try:
+    os.setsid()
+  except:
+    print( "ERROR in setsid" )
+
+  try:
+    pid=os.fork()
+  except:
+    print( "ERROR in fork2" )
+  if pid > 0:
+    with open(pidfname, "w") as f:
+      print( pid, file=f )
+    os._exit(0)
+
+#
+#
 def main():
     ns = NameService()
     ns.run()
 
+
+
 if __name__ == '__main__':
+    daemonize()
     main()
