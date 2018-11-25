@@ -1,4 +1,5 @@
 #
 #
-from main import *
+#from main import *
+import main 
 import xmlrpc

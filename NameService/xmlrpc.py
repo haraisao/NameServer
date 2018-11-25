@@ -5,6 +5,7 @@
 #
 from __future__ import print_function
 from main import *
+from main import NameService
 import types
 import signal
 import time
@@ -86,7 +87,7 @@ def registerFunction(name):
 #
 def remoteExec(src):
     try:
-      print (src)
+      #print (src)
       exec(src,globals())
     except:
       import traceback
@@ -98,7 +99,7 @@ def remoteExec(src):
 #
 def remoteEval(src):
     try:
-      print (src)
+      #print (src)
       print(eval(src,globals()))
     except:
       traceback.print_exc()

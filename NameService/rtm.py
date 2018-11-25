@@ -124,11 +124,11 @@ def check_connection(outp, inp):
     for prof in opp.connector_profiles:
         ports = prof.ports
         if len(ports) == 2 :
-            print (outp._is_equivalent(ports[0]) )
+            #print (outp._is_equivalent(ports[0]) )
             pname1=ports[0].get_port_profile().name
             pname2=ports[1].get_port_profile().name
             if pname1 == in_name or pname2 == in_name:
-                print prof.connector_id
+                #print prof.connector_id
                 return prof.connector_id
     return None
 #

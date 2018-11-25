@@ -1164,7 +1164,7 @@ class WebSocketCommand(CommCommand):
         # call function...
         if not fragment :
           self.data = self.json_decode(self.data)
-          print self.data
+          #print self.data
 
           if type(self.data) == dict :
             if  'Status' in self.data and self.data['Status'] == "Opening" :

@@ -82,7 +82,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
             if not force and self.object_table.has_key(key):
                 raise CosNaming.NamingContext.AlreadyBound()
 
-            print(obj)
+            #print(obj)
             self.object_table[key] = (obj, CosNaming.nobject)
             return
         else:
@@ -241,7 +241,7 @@ class NamingContext_i(CosNaming__POA.NamingContextExt):
     # Object      resolve_str(in StringName n)
     #  raises(NotFound, CannotProceed, InvalidName, AlreadyBound);
     def resolve_str(self, sn):
-        print (URI.stringToName(sn))
+        #print (URI.stringToName(sn))
         return self.resolve(URI.stringToName(sn))
 
     

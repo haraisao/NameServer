@@ -16,6 +16,7 @@ try:
 except:
     import xmlrpc.server as xmlrpc_server
 
+
 def create_names_poa(root_poa):
     try:
         names_poa = root_poa.find_POA("", False)
@@ -55,7 +56,7 @@ class NameService(object):
         self.ins_poa  = self.orb.resolve_initial_references("omniINSPOA")
         self.root_context = NamingContext_i("NameService", self.names_poa, self.ins_poa)
         self.ins_poa._get_the_POAManager().activate()
-        self.print_ior(self.root_context)
+        #self.print_ior(self.root_context)
     #
     #
     def print_ior(self, obj):
@@ -122,6 +123,18 @@ def main():
     ns = NameService()
     ns.run()
 
+def name_server():
+    import xmlrpc
+    os.mkdir('/tmp/run')
+    pid_file='/tmp/run/NameServer.pid'
+    if len(sys.argv) > 1:
+      pid_file=sys.argv[1]
+
+    daemonize(pid_file)
+    xmlrpc.initNS()
+    xmlrpc._setup()
+    xmlrpc._start()
+    os.remove(pid_file)
 
 
 if __name__ == '__main__':
