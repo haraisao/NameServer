@@ -6,6 +6,7 @@
 from __future__ import print_function
 import sys
 import os
+import signal
 from omniORB import CORBA,PortableServer
 
 import CosNaming, CosNaming__POA
@@ -125,13 +126,30 @@ def main():
 
 def name_server():
     import xmlrpc
+
+    cmd='start'
+    if 'stop' in sys.argv:
+      cmd='stop'
+      sys.argv.remove('stop')
+
     try:
         os.mkdir('/tmp/run')
     except:
         pass
     pid_file='/tmp/run/NameServer.pid'
-    if len(sys.argv) > 1:
-      pid_file=sys.argv[1]
+    if len(sys.argv) > 1 and sys.argv:
+        pid_file=sys.argv[1]
+
+    if cmd == 'stop':
+        if os.path.isfile(pid_file):
+            stop_name_server(pid_file)
+        else:   
+            print("PID file not found")
+        return
+   
+    if os.path.isfile(pid_file):
+        print("NameServer is already running, remove %s" % pid_file)
+        return
 
     if os.name == 'posix':
       daemonize(pid_file)
@@ -143,6 +161,12 @@ def name_server():
     except:
       pass
 
+def stop_name_server(pid_file):
+   pid=int(file(pid_file).read())
+   os.kill(pid, signal.SIGINT)
+   if os.path.isfile(pid_file):
+     os.remove(pid_file)
+    
 
 if __name__ == '__main__':
     daemonize()
