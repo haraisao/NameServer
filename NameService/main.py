@@ -125,16 +125,23 @@ def main():
 
 def name_server():
     import xmlrpc
-    os.mkdir('/tmp/run')
+    try:
+        os.mkdir('/tmp/run')
+    except:
+        pass
     pid_file='/tmp/run/NameServer.pid'
     if len(sys.argv) > 1:
       pid_file=sys.argv[1]
 
-    daemonize(pid_file)
+    if os.name == 'posix':
+      daemonize(pid_file)
     xmlrpc.initNS()
     xmlrpc._setup()
     xmlrpc._start()
-    os.remove(pid_file)
+    try:
+      os.remove(pid_file)
+    except:
+      pass
 
 
 if __name__ == '__main__':
